@@ -22,6 +22,8 @@ export function useDataSync({
 }: UseDataSyncProps) {
   const lastSyncRef = useRef<string>('');
   const isSyncingRef = useRef(false);
+  const isLoadingFromCloudRef = useRef(false);
+  const isInitializedRef = useRef(false);
 
   // Load data from cloud on mount
   useEffect(() => {
@@ -41,8 +43,14 @@ export function useDataSync({
           };
 
           const mergedData = mergeData(localData, cloudData);
+          isLoadingFromCloudRef.current = true;
           onDataLoaded(mergedData);
           lastSyncRef.current = mergedData.lastModified;
+          // Reset flag after a short delay to allow state updates to complete
+          setTimeout(() => {
+            isLoadingFromCloudRef.current = false;
+            isInitializedRef.current = true;
+          }, 100);
         }
       } catch (error) {
         console.error('Error loading cloud data:', error);
@@ -65,8 +73,13 @@ export function useDataSync({
 
       console.log('Received cloud update');
       localStorage.setItem('nomis_last_sync', cloudData.lastModified);
+      isLoadingFromCloudRef.current = true;
       onDataLoaded(cloudData);
       lastSyncRef.current = cloudData.lastModified;
+      // Reset flag after a short delay to allow state updates to complete
+      setTimeout(() => {
+        isLoadingFromCloudRef.current = false;
+      }, 100);
     });
 
     return () => {
@@ -93,6 +106,12 @@ export function useDataSync({
   // Debounced sync
   useEffect(() => {
     if (!userId || !useFirebase) return;
+    
+    // Don't sync if we're currently loading data from cloud
+    if (isLoadingFromCloudRef.current) return;
+    
+    // Don't sync until initial data is loaded
+    if (!isInitializedRef.current) return;
 
     const timeoutId = setTimeout(() => {
       syncToCloud();
