@@ -64,6 +64,7 @@ export function useDataSync({
       if (isSyncingRef.current) return;
 
       console.log('Received cloud update');
+      localStorage.setItem('nomis_last_sync', cloudData.lastModified);
       onDataLoaded(cloudData);
       lastSyncRef.current = cloudData.lastModified;
     });
@@ -79,8 +80,9 @@ export function useDataSync({
 
     try {
       isSyncingRef.current = true;
-      await saveUserData(userId, tasks, categories, habits);
-      lastSyncRef.current = new Date().toISOString();
+      const timestamp = await saveUserData(userId, tasks, categories, habits);
+      lastSyncRef.current = timestamp;
+      localStorage.setItem('nomis_last_sync', timestamp);
     } catch (error) {
       console.error('Error syncing to cloud:', error);
     } finally {

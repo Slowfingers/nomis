@@ -81,7 +81,7 @@ export async function saveUserData(
   tasks: Task[],
   categories: Category[],
   habits: Habit[]
-): Promise<void> {
+): Promise<string> {
   const firebase = initializeFirebase();
   if (!firebase) {
     throw new Error('Firebase not initialized');
@@ -89,16 +89,18 @@ export async function saveUserData(
 
   try {
     const userDocRef = doc(firebase.db, 'users', userId);
+    const timestamp = new Date().toISOString();
     const data: AppData = {
       version: 1,
       tasks,
       categories,
       habits,
-      lastModified: new Date().toISOString(),
+      lastModified: timestamp,
     };
 
     await setDoc(userDocRef, data, { merge: true });
     console.log('Data synced to cloud');
+    return timestamp;
   } catch (error) {
     console.error('Error saving to Firestore:', error);
     throw error;
