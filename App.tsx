@@ -408,6 +408,7 @@ export const App = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search toggle
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isYearReviewOpen, setIsYearReviewOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   
   // Category Editing State
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -1286,11 +1287,12 @@ export const App = () => {
                 className="relative cursor-pointer"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
-                  {user?.avatar ? (
+                  {user?.avatar && !avatarError ? (
                     <img 
                       src={user.avatar} 
                       alt="Profile" 
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-emerald-100 shadow-sm hover:shadow-md transition-all object-cover"
+                      onError={() => setAvatarError(true)}
                     />
                   ) : (
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-emerald-100 to-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] sm:text-xs shadow-sm hover:shadow-md transition-all">

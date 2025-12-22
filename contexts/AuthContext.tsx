@@ -41,12 +41,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const fbUser = await signInWithGoogle();
         if (fbUser) {
+          console.log('Firebase user:', {
+            displayName: fbUser.displayName,
+            email: fbUser.email,
+            photoURL: fbUser.photoURL
+          });
           const appUser: User = {
             id: fbUser.uid,
             name: fbUser.displayName || 'User',
             email: fbUser.email || '',
             avatar: fbUser.photoURL || undefined
           };
+          console.log('App user:', appUser);
           setUser(appUser);
           setFirebaseUser(fbUser);
           localStorage.setItem('nomis_user', JSON.stringify(appUser));

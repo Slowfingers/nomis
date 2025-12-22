@@ -1,4 +1,4 @@
-const CACHE_NAME = 'timsy-v1';
+const CACHE_NAME = 'timsy-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -37,6 +37,14 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-http requests (like chrome-extension://)
   if (!url.protocol.startsWith('http')) return;
+
+  // Skip Firebase and Google APIs - let them handle their own caching
+  if (url.hostname.includes('firebaseapp.com') || 
+      url.hostname.includes('googleapis.com') ||
+      url.hostname.includes('googleusercontent.com') ||
+      url.hostname.includes('google.com')) {
+    return;
+  }
 
   // Strategy: Stale-While-Revalidate
   // Serve from cache immediately, then update cache from network
