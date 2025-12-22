@@ -1,23 +1,25 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { signInWithGoogle, signOutUser, isFirebaseConfigured } from '../services/firebaseService';
+import { User as FirebaseUser } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   login: () => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  useFirebase: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Google OAuth Configuration
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin;
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const useFirebase = isFirebaseConfigured();
 
   useEffect(() => {
     // Check local storage for existing session
@@ -34,10 +36,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async () => {
-    // Check if Google Client ID is configured
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'your_google_client_id_here.apps.googleusercontent.com') {
-      // Fallback to demo mode if OAuth is not configured
-      console.warn('Google OAuth not configured. Using demo mode.');
+    if (useFirebase) {
+      // Use Firebase Authentication
+      try {
+        const fbUser = await signInWithGoogle();
+        if (fbUser) {
+          const appUser: User = {
+            id: fbUser.uid,
+            name: fbUser.displayName || 'User',
+            email: fbUser.email || '',
+            avatar: fbUser.photoURL || undefined
+          };
+          setUser(appUser);
+          setFirebaseUser(fbUser);
+          localStorage.setItem('nomis_user', JSON.stringify(appUser));
+        }
+      } catch (error) {
+        console.error('Firebase login error:', error);
+        throw error;
+      }
+    } else {
+      // Fallback to demo mode
+      console.warn('Firebase not configured. Using demo mode.');
       return new Promise<void>((resolve) => {
         setTimeout(() => {
           const demoUser: User = {
@@ -52,39 +72,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 1000);
       });
     }
-
-    // Real Google OAuth flow
-    try {
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-      authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
-      authUrl.searchParams.set('response_type', 'token');
-      authUrl.searchParams.set('scope', 'openid profile email');
-      authUrl.searchParams.set('state', generateRandomState());
-
-      // Store the state for verification
-      const state = authUrl.searchParams.get('state');
-      if (state) {
-        sessionStorage.setItem('oauth_state', state);
-      }
-
-      // Redirect to Google OAuth
-      window.location.href = authUrl.toString();
-    } catch (error) {
-      console.error('OAuth error:', error);
-      throw new Error('Failed to initiate Google login');
-    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (useFirebase) {
+      try {
+        await signOutUser();
+      } catch (error) {
+        console.error('Firebase logout error:', error);
+      }
+    }
+    
     setUser(null);
+    setFirebaseUser(null);
     localStorage.removeItem('nomis_user');
     sessionStorage.removeItem('oauth_state');
     sessionStorage.removeItem('access_token');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, login, logout, isLoading, useFirebase }}>
       {children}
     </AuthContext.Provider>
   );
@@ -97,10 +104,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-// Helper function to generate random state for OAuth security
-function generateRandomState(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-}

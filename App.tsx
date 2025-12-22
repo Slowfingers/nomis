@@ -21,6 +21,9 @@ import { LoginScreen } from './components/LoginScreen';
 import { NetworkStatus } from './components/NetworkStatus';
 import { useLanguage } from './contexts/LanguageContext';
 import { UzbekPattern } from './components/UzbekPattern';
+import { loadData, saveData, exportData, importData, STORAGE_KEYS } from './utils/dataManager';
+import { useDataSync } from './hooks/useDataSync';
+import { AppData } from './utils/dataManager';
 
 // --- Default Data ---
 const DEFAULT_CATEGORIES: Category[] = [
@@ -382,21 +385,18 @@ const QuickAddInput: React.FC<{ onAdd: (title: string, time?: string) => void, t
 
 export const App = () => {
   // Auth & Language
-  const { user, logout, isLoading: isAuthLoading } = useAuth();
+  const { user, logout, isLoading: isAuthLoading, useFirebase } = useAuth();
   const { t, language, setLanguage } = useLanguage();
 
-  // State
+  // State with versioned storage
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('tasks');
-    return saved ? JSON.parse(saved) : [];
+    return loadData<Task[]>(STORAGE_KEYS.TASKS, []);
   });
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('categories');
-    return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+    return loadData<Category[]>(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
   });
   const [habits, setHabits] = useState<Habit[]>(() => {
-    const saved = localStorage.getItem('habits');
-    return saved ? JSON.parse(saved) : [];
+    return loadData<Habit[]>(STORAGE_KEYS.HABITS, []);
   });
   const [viewMode, setViewMode] = useState<ViewMode | string>('today');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -412,18 +412,57 @@ export const App = () => {
   // Category Editing State
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
-  // Persist State
+  // Persist State with versioning
   useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    saveData(STORAGE_KEYS.TASKS, tasks);
   }, [tasks]);
 
   useEffect(() => {
-    localStorage.setItem('habits', JSON.stringify(habits));
+    saveData(STORAGE_KEYS.HABITS, habits);
   }, [habits]);
 
   useEffect(() => {
-    localStorage.setItem('categories', JSON.stringify(categories));
+    saveData(STORAGE_KEYS.CATEGORIES, categories);
   }, [categories]);
+
+  // Cloud sync
+  const handleDataLoaded = (data: AppData) => {
+    setTasks(data.tasks);
+    setCategories(data.categories);
+    setHabits(data.habits);
+  };
+
+  const { syncToCloud } = useDataSync({
+    userId: user?.id || null,
+    useFirebase,
+    tasks,
+    categories,
+    habits,
+    onDataLoaded: handleDataLoaded,
+  });
+
+  // Export/Import handlers
+  const handleExport = () => {
+    exportData(tasks, categories, habits);
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importData(file);
+      if (window.confirm('Импортировать данные? Это заменит текущие данные.')) {
+        setTasks(data.tasks);
+        setCategories(data.categories);
+        setHabits(data.habits);
+        alert('Данные успешно импортированы!');
+      }
+    } catch (error) {
+      alert('Ошибка импорта: ' + (error as Error).message);
+    }
+    event.target.value = '';
+  };
 
   // Locale object for date-fns
   const dateLocale = language === 'ru' ? ru : language === 'uz' ? uz : enUS;
@@ -1277,6 +1316,29 @@ export const App = () => {
                                <button onClick={() => setLanguage('uz')} className={`flex-1 py-1 text-xs rounded-md font-medium border ${language === 'uz' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200'}`}>UZ</button>
                                <button onClick={() => setLanguage('en')} className={`flex-1 py-1 text-xs rounded-md font-medium border ${language === 'en' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200'}`}>EN</button>
                            </div>
+                       </div>
+
+                       {/* Data Management */}
+                       <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                           <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Данные</p>
+                           <button 
+                             onClick={handleExport}
+                             className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 rounded-md transition-colors mb-1"
+                           >
+                             <CornerDownLeft size={14} /> Экспорт
+                           </button>
+                           <label className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 rounded-md transition-colors cursor-pointer mb-1">
+                             <CornerDownLeft size={14} className="rotate-180" /> Импорт
+                             <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                           </label>
+                           {useFirebase && (
+                             <button 
+                               onClick={() => syncToCloud()}
+                               className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                             >
+                               <RefreshCcw size={14} /> Синхронизация
+                             </button>
+                           )}
                        </div>
 
                        <button 

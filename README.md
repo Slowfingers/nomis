@@ -46,7 +46,7 @@ cp .env.example .env.local
 
 Заполните `.env.local`:
 - `GEMINI_API_KEY` - API ключ от Google Gemini ([получить здесь](https://ai.google.dev/))
-- `VITE_GOOGLE_CLIENT_ID` - Google OAuth Client ID ([настроить здесь](https://console.cloud.google.com/))
+- Firebase конфигурация (см. раздел ниже)
 
 4. **Запустите приложение:**
 ```bash
@@ -55,15 +55,51 @@ npm run dev
 
 Приложение будет доступно по адресу: `http://localhost:3001`
 
-## 🔐 Настройка Google OAuth
+## 🔐 Настройка Firebase (для облачной синхронизации)
 
-1. Перейдите в [Google Cloud Console](https://console.cloud.google.com/)
-2. Создайте новый проект или выберите существующий
-3. Включите Google+ API
-4. Создайте OAuth 2.0 Client ID:
-   - Тип: Web application
-   - Authorized redirect URIs: `http://localhost:3001` (для разработки)
-5. Скопируйте Client ID в `.env.local`
+### Создание проекта Firebase
+
+1. Перейдите в [Firebase Console](https://console.firebase.google.com/)
+2. Создайте новый проект
+3. Включите **Authentication** → Google Sign-In
+4. Включите **Firestore Database** (в режиме production)
+5. В настройках проекта получите конфигурацию:
+   - API Key
+   - Auth Domain
+   - Project ID
+   - Storage Bucket
+   - Messaging Sender ID
+   - App ID
+
+### Настройка Firestore Rules
+
+В Firestore Database → Rules добавьте:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+### Добавление конфигурации
+
+Скопируйте значения в `.env.local`:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+```
+
+**Примечание:** Если Firebase не настроен, приложение работает в demo-режиме с локальным хранилищем.
 
 ## 📦 Сборка для продакшена
 
@@ -79,10 +115,30 @@ npm run build
 - **Styling:** Tailwind CSS
 - **Build:** Vite
 - **AI:** Google Gemini API
-- **Auth:** Google OAuth 2.0
+- **Auth:** Firebase Authentication (Google Sign-In)
+- **Database:** Firebase Firestore
+- **Storage:** LocalStorage + Cloud Sync
 - **Icons:** Lucide React
 - **Date:** date-fns
 - **PWA:** Service Worker
+
+## 💾 Система хранения данных
+
+### Локальное хранилище
+- Версионированное хранилище в localStorage
+- Автоматическая миграция данных при обновлениях
+- Защита от потери данных при изменении структуры
+
+### Облачная синхронизация (опционально)
+- Синхронизация между устройствами через Firebase
+- Автоматическое слияние конфликтов
+- Real-time обновления
+- Работает без интернета (offline-first)
+
+### Экспорт/Импорт
+- Экспорт всех данных в JSON
+- Импорт резервных копий
+- Доступно в профильном меню
 
 ## 📱 Функции
 
