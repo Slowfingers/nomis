@@ -13,7 +13,7 @@ export const UzbekPattern: React.FC<UzbekPatternProps> = ({ className = '', opac
         opacity,
         backgroundImage: 'url(/1270666.svg)',
         backgroundRepeat: 'repeat',
-        backgroundSize: '400px 400px'
+        backgroundSize: '200px 200px'
       }}
     />
   );
