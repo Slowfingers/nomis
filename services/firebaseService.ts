@@ -47,7 +47,19 @@ export function initializeFirebase(): { app: FirebaseApp; db: Firestore; auth: A
   }
 }
 
-// Google Sign In - uses popup with fallback to redirect
+// Detect if running on iOS
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Detect if running in standalone mode (installed PWA)
+function isStandalone(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+    (window.navigator as any).standalone === true;
+}
+
+// Google Sign In - uses redirect for iOS, popup for others
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
   if (!firebase) return null;
@@ -57,12 +69,18 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
     await setPersistence(firebase.auth, browserLocalPersistence);
     
     const provider = new GoogleAuthProvider();
-    // Force account selection every time
     provider.setCustomParameters({
       prompt: 'select_account'
     });
     
-    // Try popup first - works on most modern mobile browsers
+    // iOS Safari has issues with popups - use redirect directly
+    if (isIOS()) {
+      console.log('[Auth] iOS detected, using signInWithRedirect...');
+      await signInWithRedirect(firebase.auth, provider);
+      return null; // Result handled after redirect
+    }
+    
+    // For other platforms, try popup
     try {
       console.log('[Auth] Trying signInWithPopup...');
       const result = await signInWithPopup(firebase.auth, provider);
@@ -71,13 +89,13 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
     } catch (popupError: any) {
       console.log('[Auth] Popup failed:', popupError.code, popupError.message);
       
-      // If popup blocked or failed, try redirect
+      // Fallback to redirect
       if (popupError.code === 'auth/popup-blocked' || 
           popupError.code === 'auth/popup-closed-by-user' ||
           popupError.code === 'auth/cancelled-popup-request') {
         console.log('[Auth] Falling back to signInWithRedirect...');
         await signInWithRedirect(firebase.auth, provider);
-        return null; // Result handled by onAuthStateChanged after redirect
+        return null;
       }
       throw popupError;
     }
@@ -87,20 +105,24 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   }
 }
 
-// Handle redirect result after OAuth redirect
+// Handle redirect result after OAuth redirect - MUST be called on app init
 export async function handleRedirectResult(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
   if (!firebase) return null;
 
   try {
+    console.log('[Auth] Checking for redirect result...');
     const result = await getRedirectResult(firebase.auth);
     if (result) {
+      console.log('[Auth] Redirect result found:', result.user.email);
       return result.user;
     }
+    console.log('[Auth] No redirect result');
     return null;
-  } catch (error) {
-    console.error('Redirect result error:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('[Auth] Redirect result error:', error.code, error.message);
+    // Don't throw - just return null and let onAuthStateChanged handle it
+    return null;
   }
 }
 
