@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, doc, setDoc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Task, Category, Habit } from '../types';
 import { AppData } from '../utils/dataManager';
 
@@ -90,6 +90,23 @@ export async function handleRedirectResult(): Promise<FirebaseUser | null> {
     console.error('Redirect result error:', error);
     throw error;
   }
+}
+
+// Subscribe to auth state changes - this is the reliable way to track auth
+export function subscribeToAuthState(
+  callback: (user: FirebaseUser | null) => void
+): (() => void) | null {
+  const firebase = initializeFirebase();
+  if (!firebase) return null;
+
+  return onAuthStateChanged(firebase.auth, callback);
+}
+
+// Get current auth user
+export function getCurrentUser(): FirebaseUser | null {
+  const firebase = initializeFirebase();
+  if (!firebase) return null;
+  return firebase.auth.currentUser;
 }
 
 // Sign Out

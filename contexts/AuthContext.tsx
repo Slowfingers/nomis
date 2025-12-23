@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import { signInWithGoogle, signOutUser, isFirebaseConfigured, handleRedirectResult } from '../services/firebaseService';
+import { signInWithGoogle, signOutUser, isFirebaseConfigured, subscribeToAuthState } from '../services/firebaseService';
 import { User as FirebaseUser } from 'firebase/auth';
 
 interface AuthContextType {
@@ -22,31 +22,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const useFirebase = isFirebaseConfigured();
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Check for redirect result (mobile OAuth flow)
-      if (useFirebase) {
-        try {
-          const fbUser = await handleRedirectResult();
-          if (fbUser) {
-            console.log('Redirect result user:', fbUser);
-            const appUser: User = {
-              id: fbUser.uid,
-              name: fbUser.displayName || 'User',
-              email: fbUser.email || '',
-              avatar: fbUser.photoURL || undefined
-            };
-            setUser(appUser);
-            setFirebaseUser(fbUser);
-            localStorage.setItem('nomis_user', JSON.stringify(appUser));
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Redirect result error:', error);
+    // For Firebase auth, use onAuthStateChanged as the primary auth tracker
+    // This handles all auth methods: popup, redirect, and persisted sessions
+    if (useFirebase) {
+      console.log('[Auth] Setting up Firebase auth state listener');
+      
+      const unsubscribe = subscribeToAuthState((fbUser) => {
+        console.log('[Auth] Auth state changed:', fbUser ? fbUser.email : 'null');
+        
+        if (fbUser) {
+          const appUser: User = {
+            id: fbUser.uid,
+            name: fbUser.displayName || 'User',
+            email: fbUser.email || '',
+            avatar: fbUser.photoURL || undefined
+          };
+          setUser(appUser);
+          setFirebaseUser(fbUser);
+          localStorage.setItem('nomis_user', JSON.stringify(appUser));
+          console.log('[Auth] User authenticated:', appUser.email);
+        } else {
+          // Only clear if we were previously logged in
+          setUser(null);
+          setFirebaseUser(null);
+          localStorage.removeItem('nomis_user');
+          console.log('[Auth] User signed out');
         }
-      }
+        setIsLoading(false);
+      });
 
-      // Check local storage for existing session
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    } else {
+      // Non-Firebase mode: check local storage
       const storedUser = localStorage.getItem('nomis_user');
       if (storedUser) {
         try {
@@ -57,33 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       setIsLoading(false);
-    };
-
-    initAuth();
+    }
   }, [useFirebase]);
 
   const login = async () => {
     if (useFirebase) {
       // Use Firebase Authentication
+      // For mobile: signInWithRedirect is used, returns null, onAuthStateChanged handles the rest
+      // For desktop: signInWithPopup is used, onAuthStateChanged will fire automatically
       try {
-        const fbUser = await signInWithGoogle();
-        if (fbUser) {
-          console.log('Firebase user:', {
-            displayName: fbUser.displayName,
-            email: fbUser.email,
-            photoURL: fbUser.photoURL
-          });
-          const appUser: User = {
-            id: fbUser.uid,
-            name: fbUser.displayName || 'User',
-            email: fbUser.email || '',
-            avatar: fbUser.photoURL || undefined
-          };
-          console.log('App user:', appUser);
-          setUser(appUser);
-          setFirebaseUser(fbUser);
-          localStorage.setItem('nomis_user', JSON.stringify(appUser));
-        }
+        console.log('[Auth] Starting Google sign in...');
+        await signInWithGoogle();
+        // Don't set user here - onAuthStateChanged will handle it
       } catch (error) {
         console.error('Firebase login error:', error);
         throw error;
@@ -111,16 +107,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (useFirebase) {
       try {
         await signOutUser();
+        // onAuthStateChanged will handle clearing user state
       } catch (error) {
         console.error('Firebase logout error:', error);
+        // Fallback: clear state manually if signOut fails
+        setUser(null);
+        setFirebaseUser(null);
+        localStorage.removeItem('nomis_user');
       }
+    } else {
+      // Non-Firebase mode: clear state manually
+      setUser(null);
+      setFirebaseUser(null);
+      localStorage.removeItem('nomis_user');
     }
-    
-    setUser(null);
-    setFirebaseUser(null);
-    localStorage.removeItem('nomis_user');
-    sessionStorage.removeItem('oauth_state');
-    sessionStorage.removeItem('access_token');
   };
 
   return (
