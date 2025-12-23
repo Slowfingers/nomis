@@ -5,7 +5,7 @@ import {
   Target, BarChart2, Plus, Trash2, CalendarDays, CalendarClock,
   ChevronRight, ChevronDown, Check, RefreshCcw, Search, Grid, Layout,
   Tag, Palette, FolderPlus, X, Settings2, Pencil, Menu, MoreHorizontal, ArrowLeft,
-  CornerDownLeft, LogOut, XCircle, Sparkles, Languages
+  CornerDownLeft, LogOut, XCircle, Sparkles, Languages, Smartphone
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast, isSameDay, parseISO, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isFuture, isThisWeek } from 'date-fns';
 import { ru, enUS, uz } from 'date-fns/locale';
@@ -19,6 +19,7 @@ import { YearInReview } from './components/YearInReview';
 import { useAuth } from './contexts/AuthContext';
 import { LoginScreen } from './components/LoginScreen';
 import { NetworkStatus } from './components/NetworkStatus';
+import { InstallGuide } from './components/InstallGuide';
 import { useLanguage } from './contexts/LanguageContext';
 import { UzbekPattern } from './components/UzbekPattern';
 import { loadData, saveData, exportData, importData, STORAGE_KEYS } from './utils/dataManager';
@@ -408,6 +409,7 @@ export const App = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search toggle
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isYearReviewOpen, setIsYearReviewOpen] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   
   // Category Editing State
@@ -1310,6 +1312,14 @@ export const App = () => {
                           <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                        </div>
                        
+                       {/* Install Guide Button */}
+                       <button 
+                         onClick={() => { setShowInstallGuide(true); setShowProfileMenu(false); }}
+                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors mb-1"
+                       >
+                         <Smartphone size={16} /> {t('install.title')}
+                       </button>
+
                        {/* Language Switcher */}
                        <div className="px-3 py-2 border-b border-slate-50 mb-1">
                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">{t('profile.language')}</p>
@@ -1503,6 +1513,7 @@ export const App = () => {
       {isModalOpen && <TaskModal />}
       {editingCategory && <CategoryEditModal />}
       {isYearReviewOpen && <YearInReview tasks={tasks} habits={habits} categories={categories} onClose={() => setIsYearReviewOpen(false)} />}
+      {showInstallGuide && <InstallGuide onClose={() => setShowInstallGuide(false)} />}
     </div>
   );
 }
