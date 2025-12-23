@@ -47,19 +47,7 @@ export function initializeFirebase(): { app: FirebaseApp; db: Firestore; auth: A
   }
 }
 
-// Detect if running on iOS
-function isIOS(): boolean {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-// Detect if running in standalone mode (installed PWA)
-function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches || 
-    (window.navigator as any).standalone === true;
-}
-
-// Google Sign In - uses redirect for iOS, popup for others
+// Google Sign In - always use popup (works better on modern iOS with ITP)
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
   if (!firebase) return null;
@@ -73,34 +61,13 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
       prompt: 'select_account'
     });
     
-    // iOS Safari has issues with popups - use redirect directly
-    if (isIOS()) {
-      console.log('[Auth] iOS detected, using signInWithRedirect...');
-      await signInWithRedirect(firebase.auth, provider);
-      return null; // Result handled after redirect
-    }
-    
-    // For other platforms, try popup
-    try {
-      console.log('[Auth] Trying signInWithPopup...');
-      const result = await signInWithPopup(firebase.auth, provider);
-      console.log('[Auth] Popup success:', result.user.email);
-      return result.user;
-    } catch (popupError: any) {
-      console.log('[Auth] Popup failed:', popupError.code, popupError.message);
-      
-      // Fallback to redirect
-      if (popupError.code === 'auth/popup-blocked' || 
-          popupError.code === 'auth/popup-closed-by-user' ||
-          popupError.code === 'auth/cancelled-popup-request') {
-        console.log('[Auth] Falling back to signInWithRedirect...');
-        await signInWithRedirect(firebase.auth, provider);
-        return null;
-      }
-      throw popupError;
-    }
-  } catch (error) {
-    console.error('[Auth] Google sign in error:', error);
+    // Always use popup - redirect has issues with iOS ITP
+    console.log('[Auth] Using signInWithPopup...');
+    const result = await signInWithPopup(firebase.auth, provider);
+    console.log('[Auth] Popup success:', result.user.email);
+    return result.user;
+  } catch (error: any) {
+    console.error('[Auth] Google sign in error:', error.code, error.message);
     throw error;
   }
 }
