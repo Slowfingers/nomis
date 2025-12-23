@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, doc, setDoc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence, User as FirebaseUser } from 'firebase/auth';
 import { Task, Category, Habit } from '../types';
 import { AppData } from '../utils/dataManager';
 
@@ -47,30 +47,42 @@ export function initializeFirebase(): { app: FirebaseApp; db: Firestore; auth: A
   }
 }
 
-// Detect if device is mobile
-function isMobileDevice(): boolean {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-// Google Sign In
+// Google Sign In - uses popup with fallback to redirect
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
   if (!firebase) return null;
 
   try {
-    const provider = new GoogleAuthProvider();
+    // Set persistence to local for reliable session storage
+    await setPersistence(firebase.auth, browserLocalPersistence);
     
-    // Use redirect for mobile devices (iOS Safari, in-app browsers)
-    if (isMobileDevice()) {
-      await signInWithRedirect(firebase.auth, provider);
-      return null; // Result will be handled by getRedirectResult
-    } else {
-      // Use popup for desktop
+    const provider = new GoogleAuthProvider();
+    // Force account selection every time
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    // Try popup first - works on most modern mobile browsers
+    try {
+      console.log('[Auth] Trying signInWithPopup...');
       const result = await signInWithPopup(firebase.auth, provider);
+      console.log('[Auth] Popup success:', result.user.email);
       return result.user;
+    } catch (popupError: any) {
+      console.log('[Auth] Popup failed:', popupError.code, popupError.message);
+      
+      // If popup blocked or failed, try redirect
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request') {
+        console.log('[Auth] Falling back to signInWithRedirect...');
+        await signInWithRedirect(firebase.auth, provider);
+        return null; // Result handled by onAuthStateChanged after redirect
+      }
+      throw popupError;
     }
   } catch (error) {
-    console.error('Google sign in error:', error);
+    console.error('[Auth] Google sign in error:', error);
     throw error;
   }
 }

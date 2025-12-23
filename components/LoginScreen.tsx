@@ -13,8 +13,15 @@ export const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
-    await login();
-    // No need to set false, component will unmount
+    try {
+      await login();
+      // If using redirect, component won't unmount immediately
+      // If using popup success, onAuthStateChanged will handle it
+    } catch (error: any) {
+      console.error('[LoginScreen] Login error:', error);
+      // Reset loading state on error
+      setIsLoggingIn(false);
+    }
   };
 
   return (
