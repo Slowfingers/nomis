@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import { signInWithGoogle, signOutUser, isFirebaseConfigured } from '../services/firebaseService';
+import { signInWithGoogle, signOutUser, isFirebaseConfigured, handleRedirectResult } from '../services/firebaseService';
 import { User as FirebaseUser } from 'firebase/auth';
 
 interface AuthContextType {
@@ -22,18 +22,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const useFirebase = isFirebaseConfigured();
 
   useEffect(() => {
-    // Check local storage for existing session
-    const storedUser = localStorage.getItem('nomis_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse user");
-        localStorage.removeItem('nomis_user');
+    const initAuth = async () => {
+      // Check for redirect result (mobile OAuth flow)
+      if (useFirebase) {
+        try {
+          const fbUser = await handleRedirectResult();
+          if (fbUser) {
+            console.log('Redirect result user:', fbUser);
+            const appUser: User = {
+              id: fbUser.uid,
+              name: fbUser.displayName || 'User',
+              email: fbUser.email || '',
+              avatar: fbUser.photoURL || undefined
+            };
+            setUser(appUser);
+            setFirebaseUser(fbUser);
+            localStorage.setItem('nomis_user', JSON.stringify(appUser));
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Redirect result error:', error);
+        }
       }
-    }
-    setIsLoading(false);
-  }, []);
+
+      // Check local storage for existing session
+      const storedUser = localStorage.getItem('nomis_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse user");
+          localStorage.removeItem('nomis_user');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, [useFirebase]);
 
   const login = async () => {
     if (useFirebase) {

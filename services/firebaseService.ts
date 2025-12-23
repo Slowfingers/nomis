@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, doc, setDoc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, User as FirebaseUser } from 'firebase/auth';
 import { Task, Category, Habit } from '../types';
 import { AppData } from '../utils/dataManager';
 
@@ -47,6 +47,11 @@ export function initializeFirebase(): { app: FirebaseApp; db: Firestore; auth: A
   }
 }
 
+// Detect if device is mobile
+function isMobileDevice(): boolean {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 // Google Sign In
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
@@ -54,10 +59,35 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
 
   try {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(firebase.auth, provider);
-    return result.user;
+    
+    // Use redirect for mobile devices (iOS Safari, in-app browsers)
+    if (isMobileDevice()) {
+      await signInWithRedirect(firebase.auth, provider);
+      return null; // Result will be handled by getRedirectResult
+    } else {
+      // Use popup for desktop
+      const result = await signInWithPopup(firebase.auth, provider);
+      return result.user;
+    }
   } catch (error) {
     console.error('Google sign in error:', error);
+    throw error;
+  }
+}
+
+// Handle redirect result after OAuth redirect
+export async function handleRedirectResult(): Promise<FirebaseUser | null> {
+  const firebase = initializeFirebase();
+  if (!firebase) return null;
+
+  try {
+    const result = await getRedirectResult(firebase.auth);
+    if (result) {
+      return result.user;
+    }
+    return null;
+  } catch (error) {
+    console.error('Redirect result error:', error);
     throw error;
   }
 }
