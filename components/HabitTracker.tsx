@@ -31,8 +31,28 @@ const LEVEL_THRESHOLDS = [
 
 export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, onToggleHabit, onDeleteHabit }) => {
   const [newHabitTitle, setNewHabitTitle] = useState('');
-  const [quoteIndex] = useState(() => Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length));
   const today = new Date().toISOString().split('T')[0];
+  
+  // Get daily quote - cached per day
+  const [quoteIndex] = useState(() => {
+    const cached = localStorage.getItem('daily_wisdom');
+    if (cached) {
+      try {
+        const { date, index } = JSON.parse(cached);
+        // If cached date matches today, use cached quote
+        if (date === today) {
+          return index;
+        }
+      } catch (e) {
+        // Invalid cache, generate new
+      }
+    }
+    
+    // Generate new quote for today
+    const newIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    localStorage.setItem('daily_wisdom', JSON.stringify({ date: today, index: newIndex }));
+    return newIndex;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
