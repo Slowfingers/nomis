@@ -137,13 +137,13 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ tasks, habits, categ
                     style={{ backgroundColor: stats.bestCategory?.color || '#10b981' }}
                 >
                     <span className="text-6xl md:text-8xl font-black text-white opacity-90">
-                        {t(stats.bestCategory?.name || 'yir.misc').charAt(0).toUpperCase()}
+                        {stats.bestCategory ? t(stats.bestCategory.name).charAt(0).toUpperCase() : t('yir.misc').charAt(0).toUpperCase()}
                     </span>
                 </div>
              </div>
              
              <h3 className="text-4xl md:text-5xl font-black text-white mb-4">
-                {t(stats.bestCategory?.name || 'yir.misc')}
+                {stats.bestCategory ? t(stats.bestCategory.name) : t('yir.misc')}
              </h3>
              <p className="text-lg text-white/80">
                 {t('yir.focus_desc')}
