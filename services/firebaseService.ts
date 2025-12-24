@@ -47,7 +47,13 @@ export function initializeFirebase(): { app: FirebaseApp; db: Firestore; auth: A
   }
 }
 
-// Google Sign In - always use popup (works better on modern iOS with ITP)
+// Detect if running in standalone mode (installed PWA)
+function isStandalone(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+    (window.navigator as any).standalone === true;
+}
+
+// Google Sign In - use redirect for PWA standalone, popup for browser
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   const firebase = initializeFirebase();
   if (!firebase) return null;
@@ -61,7 +67,14 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
       prompt: 'select_account'
     });
     
-    // Always use popup - redirect has issues with iOS ITP
+    // PWA standalone mode doesn't support popup - use redirect
+    if (isStandalone()) {
+      console.log('[Auth] PWA standalone detected, using signInWithRedirect...');
+      await signInWithRedirect(firebase.auth, provider);
+      return null; // Result handled after redirect via getRedirectResult
+    }
+    
+    // Regular browser - use popup
     console.log('[Auth] Using signInWithPopup...');
     const result = await signInWithPopup(firebase.auth, provider);
     console.log('[Auth] Popup success:', result.user.email);
