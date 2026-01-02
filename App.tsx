@@ -1080,7 +1080,7 @@ export const App = () => {
 
         <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
           {/* Year in Review Trigger - Prominent */}
-          <button 
+          {/* <button 
              onClick={() => { setIsYearReviewOpen(true); setIsMobileMenuOpen(false); }}
              className="w-full bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 p-0.5 rounded-xl shadow-lg shadow-amber-200/50 group transform hover:scale-[1.02] transition-all"
           >
@@ -1092,7 +1092,7 @@ export const App = () => {
                     <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">{t('sidebar.year_review')} {new Date().getFullYear()}</span>
                  </div>
              </div>
-          </button>
+          </button> */}
 
           <div className="space-y-1">
             <SidebarItem 
