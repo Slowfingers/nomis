@@ -222,30 +222,49 @@ export function subscribeToUserData(
 
 // Merge local and cloud data (conflict resolution)
 export function mergeData(localData: AppData, cloudData: AppData): AppData {
-  // Simple strategy: use the most recent data
-  const localTime = new Date(localData.lastModified).getTime();
-  const cloudTime = new Date(cloudData.lastModified).getTime();
-
-  if (cloudTime > localTime) {
-    console.log('Using cloud data (newer)');
-    return cloudData;
-  } else if (localTime > cloudTime) {
-    console.log('Using local data (newer)');
-    return localData;
-  } else {
-    // Same timestamp, merge by combining unique items
-    console.log('Merging data (same timestamp)');
-    return {
-      version: Math.max(localData.version, cloudData.version),
-      tasks: mergeArrays(localData.tasks, cloudData.tasks, 'id'),
-      categories: mergeArrays(localData.categories, cloudData.categories, 'id'),
-      habits: mergeArrays(localData.habits, cloudData.habits, 'id'),
-      lastModified: new Date().toISOString(),
-    };
-  }
+  // Smart merge strategy: combine all unique items from both sources
+  // For conflicts (same ID), use the item with the most recent modification
+  console.log('Smart merging local and cloud data');
+  
+  return {
+    version: Math.max(localData.version, cloudData.version),
+    tasks: mergeArraysWithTimestamp(localData.tasks, cloudData.tasks, 'id'),
+    categories: mergeArraysWithTimestamp(localData.categories, cloudData.categories, 'id'),
+    habits: mergeArraysWithTimestamp(localData.habits, cloudData.habits, 'id'),
+    lastModified: new Date().toISOString(),
+  };
 }
 
-// Helper to merge arrays by unique key
+// Helper to merge arrays by unique key with timestamp comparison
+function mergeArraysWithTimestamp<T extends Record<string, any>>(arr1: T[], arr2: T[], key: keyof T): T[] {
+  const map = new Map<any, T>();
+  
+  // Add all items from arr1
+  arr1.forEach(item => map.set(item[key], item));
+  
+  // Add items from arr2, but only if they're newer or don't exist yet
+  arr2.forEach(item => {
+    const existing = map.get(item[key]);
+    if (!existing) {
+      // New item, add it
+      map.set(item[key], item);
+    } else {
+      // Item exists, compare timestamps if available
+      const existingTime = existing.createdAt || existing.lastModified || 0;
+      const newTime = item.createdAt || item.lastModified || 0;
+      
+      if (newTime > existingTime) {
+        // Cloud version is newer, use it
+        map.set(item[key], item);
+      }
+      // Otherwise keep the existing (local) version
+    }
+  });
+  
+  return Array.from(map.values());
+}
+
+// Helper to merge arrays by unique key (simple version, kept for compatibility)
 function mergeArrays<T extends Record<string, any>>(arr1: T[], arr2: T[], key: keyof T): T[] {
   const map = new Map<any, T>();
   
