@@ -126,7 +126,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
         </Button>
       </form>
 
-      <div className="grid gap-5">
+      <div className="grid gap-5 px-1">
         {habits.length === 0 && (
           <div className="text-center py-16 text-slate-400 bg-white rounded-3xl border border-slate-100 border-dashed">
             <Sprout size={48} className="mx-auto mb-4 text-slate-300" />
@@ -145,7 +145,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
           const progressPercent = Math.min(100, (weeklyProgress / weeklyGoal) * 100);
 
           return (
-            <div key={habit.id} className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-slate-100 flex flex-col gap-6 transition-all hover:shadow-xl hover:translate-y-[-2px] relative group">
+            <div key={habit.id} className="bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-sm border border-slate-100 flex flex-col gap-4 sm:gap-6 transition-all hover:shadow-xl hover:translate-y-[-2px] relative group">
               
               {/* Desktop Delete Button */}
               <button 

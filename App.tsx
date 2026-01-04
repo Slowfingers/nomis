@@ -1204,7 +1204,7 @@ export const App = () => {
            <div className="absolute left-0 top-0 bottom-0 w-[85%] max-w-xs bg-white shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col z-50 rounded-r-2xl pb-safe">
               <div className="p-6 pt-safe flex justify-between items-center border-b border-slate-100">
                  <h2 className="text-xl font-bold flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center text-white shadow-md">T</div>
+                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center text-white shadow-md">N</div>
                     {t('app.name')}
                  </h2>
                  <button onClick={() => setIsMobileMenuOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
