@@ -516,9 +516,20 @@ export const App = () => {
     });
 
     return processedTasks.sort((a, b) => {
+        // Completed tasks always go to bottom
         if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
-        const pMap = { [Priority.HIGH]: 3, [Priority.MEDIUM]: 2, [Priority.LOW]: 1 };
-        return pMap[b.priority] - pMap[a.priority];
+        
+        // For non-completed tasks: newest first (by creation date)
+        if (!a.isCompleted && !b.isCompleted) {
+          return b.createdAt - a.createdAt;
+        }
+        
+        // For completed tasks: most recently completed first
+        if (a.isCompleted && b.isCompleted) {
+          return (b.completedAt || 0) - (a.completedAt || 0);
+        }
+        
+        return 0;
     });
   }, [tasks, viewMode, searchQuery, categories]);
 
@@ -543,7 +554,12 @@ export const App = () => {
         let key = 'No Date';
         let sortKey = 9999999999999;
 
-        if (task.dueDate) {
+        // Completed tasks get their own section
+        if (task.isCompleted) {
+            key = t('task.completed');
+            sortKey = 9999999999;
+        }
+        else if (task.dueDate) {
             if (isPast(d) && !isToday(d)) {
                 key = t('sidebar.overdue');
                 sortKey = 0;
@@ -740,16 +756,37 @@ export const App = () => {
   };
 
   const toggleHabit = (id: string, date: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    
     setHabits(prev => prev.map(h => {
       if (h.id !== id) return h;
       
       const exists = h.completedDates.includes(date);
+      
+      // Prevent unchecking today's completion
+      if (exists && date === today) {
+        return h;
+      }
+      
       let newDates = exists 
         ? h.completedDates.filter(d => d !== date)
         : [...h.completedDates, date];
       
       newDates.sort();
-      let streak = newDates.length; 
+      
+      // Calculate streak: count consecutive days from today backwards
+      let streak = 0;
+      const sortedDates = [...newDates].sort().reverse();
+      const todayTime = new Date(today).getTime();
+      
+      for (let i = 0; i < sortedDates.length; i++) {
+        const expectedDate = new Date(todayTime - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        if (sortedDates[i] === expectedDate) {
+          streak++;
+        } else {
+          break;
+        }
+      }
 
       return { ...h, completedDates: newDates, streak };
     }));
