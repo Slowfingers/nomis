@@ -145,7 +145,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
           const progressPercent = Math.min(100, (weeklyProgress / weeklyGoal) * 100);
 
           return (
-            <div key={habit.id} className="bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-sm border border-slate-100 flex flex-col gap-4 sm:gap-6 transition-all hover:shadow-xl hover:translate-y-[-2px] relative group">
+            <div key={habit.id} className="bg-white rounded-3xl p-3 sm:p-5 md:p-6 shadow-sm border border-slate-100 flex flex-col gap-3 sm:gap-6 transition-all hover:shadow-xl hover:translate-y-[-2px] relative group">
               
               {/* Desktop Delete Button */}
               <button 
@@ -156,37 +156,37 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
                 <X size={14} />
               </button>
 
-              <div className="flex flex-col md:flex-row md:items-center gap-5 w-full">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-5 w-full">
                 {/* Main Action Area */}
-                <div className="flex items-center gap-5 flex-1">
+                <div className="flex items-center gap-3 sm:gap-5 flex-1">
                     <button
                     onClick={() => onToggleHabit(habit.id, today)}
-                    className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group relative overflow-hidden ${
+                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group relative overflow-hidden ${
                         isDoneToday 
                         ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-200 scale-105' 
                         : 'bg-slate-50 text-slate-300 hover:bg-emerald-50 hover:text-emerald-400 border-2 border-slate-100 hover:border-emerald-200'
                     }`}
                     >
-                    <Check size={32} strokeWidth={3} className={`transition-transform duration-300 ${isDoneToday ? 'scale-100' : 'scale-90'}`} />
+                    <Check size={24} strokeWidth={3} className={`sm:w-8 sm:h-8 transition-transform duration-300 ${isDoneToday ? 'scale-100' : 'scale-90'}`} />
                     {isDoneToday && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
                     </button>
                     
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-lg sm:text-xl text-slate-800 truncate">{habit.title}</h3>
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-bold text-base sm:text-lg md:text-xl text-slate-800 truncate">{habit.title}</h3>
                             <div className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.bg} ${level.color}`}>
                                 <LevelIcon size={12} />
                                 {level.name}
                             </div>
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                            <div className="flex items-center text-orange-500 font-bold bg-orange-50 px-1.5 sm:px-2 py-0.5 rounded-lg">
-                                <Flame size={12} className="mr-1 sm:mr-1.5 fill-current" />
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
+                            <div className="flex items-center text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded-lg">
+                                <Flame size={11} className="mr-1 fill-current" />
                                 {habit.streak} дней
                             </div>
-                            <div className="text-slate-400 font-medium flex items-center gap-1">
-                                <Trophy size={12} />
+                            <div className="text-slate-400 font-medium flex items-center gap-0.5">
+                                <Trophy size={11} />
                                 Всего: {totalCompletions}
                             </div>
                         </div>
@@ -194,15 +194,15 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
                 </div>
 
                 {/* Right Side Stats */}
-                <div className="flex flex-row md:flex-col items-center md:items-end gap-3 sm:gap-4 md:gap-2 pl-3 sm:pl-4 md:pl-0 border-l md:border-l-0 border-slate-100">
+                <div className="flex flex-row md:flex-col items-center md:items-end gap-2 sm:gap-3 md:gap-2 pl-2 sm:pl-3 md:pl-0 border-l md:border-l-0 border-slate-100">
                     
                     {/* Weekly Progress Bar */}
                     <div className="flex-1 md:w-32 min-w-0">
-                        <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        <div className="flex justify-between text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
                             <span>Неделя</span>
                             <span>{weeklyProgress}/{weeklyGoal}</span>
                         </div>
-                        <div className="h-1.5 sm:h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-1 sm:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div 
                                 className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-sm shadow-emerald-200" 
                                 style={{ width: `${progressPercent}%` }}
@@ -236,14 +236,14 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({ habits, onAddHabit, 
               </div>
 
               {/* Mobile Level Badge (shown below on small screens) */}
-              <div className="sm:hidden flex items-center justify-between pt-4 border-t border-slate-50">
-                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${level.bg} ${level.color}`}>
-                        <LevelIcon size={14} />
+              <div className="sm:hidden flex items-center justify-between pt-2 border-t border-slate-50">
+                   <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.bg} ${level.color}`}>
+                        <LevelIcon size={12} />
                         {level.name}
                     </div>
                     <button 
                         onClick={() => onDeleteHabit(habit.id)}
-                        className="text-slate-300 hover:text-red-500 text-xs px-2 py-1 transition-colors"
+                        className="text-slate-300 hover:text-red-500 text-[10px] px-1.5 py-0.5 transition-colors"
                     >
                         Удалить
                     </button>
